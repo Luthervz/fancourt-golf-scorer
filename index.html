@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Fancourt Golf Scorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green-deep: #1a3a2a;
+    --green-mid: #2d6a4f;
+    --green-light: #40916c;
+    --green-pale: #d8f3dc;
+    --fairway: #52b788;
+    --gold: #f4a261;
+    --gold-dark: #e76f51;
+    --white: #fdfffe;
+    --off-white: #f0f7f2;
+    --text-dark: #1b2e22;
+    --text-mid: #3d6b4f;
+    --text-light: #6b9e80;
+    --red: #d62828;
+    --radius: 16px;
+    --shadow: 0 4px 20px rgba(26,58,42,0.15);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--green-deep);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* HEADER */
+  .header {
+    background: var(--green-deep);
+    color: var(--white);
+    padding: 16px 20px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .header-logo { font-size: 18px; font-weight: 800; color: var(--fairway); letter-spacing: -0.3px; }
+  .header-logo span { color: var(--gold); }
+  .header-sub { font-size: 11px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .hole-pill {
+    background: var(--green-mid); border-radius: 20px;
+    padding: 6px 14px; font-size: 13px; font-weight: 700;
+    color: var(--white); display: none;
+  }
+
+  /* LAYOUT */
+  .main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .screen { display: none; flex-direction: column; gap: 12px; }
+  .screen.active { display: flex; }
+
+  /* CARD */
+  .card { background: var(--white); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .card-title { font-size: 18px; font-weight: 700; color: var(--green-deep); margin-bottom: 4px; }
+  .card-sub { font-size: 13px; color: var(--text-light); margin-bottom: 16px; }
+
+  /* COURSE SELECT CARDS */
+  .course-select-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
+    border: none; border-radius: var(--radius);
+    padding: 24px 20px; color: var(--white);
+    cursor: pointer; text-align: left;
+    position: relative; overflow: hidden;
+    box-shadow: var(--shadow);
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .course-select-btn:active { transform: scale(0.98); opacity: 0.9; }
+  .course-select-btn::before {
+    content: '⛳'; position: absolute; right: -8px; top: -8px;
+    font-size: 72px; opacity: 0.12;
+  }
+  .csb-label { font-size: 11px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .csb-name { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .csb-location { font-size: 12px; opacity: 0.55; margin-top: 2px; text-transform: uppercase; letter-spacing: 1px; }
+  .csb-pars { display: flex; gap: 16px; margin-top: 14px; }
+  .csb-stat-val { font-size: 20px; font-weight: 800; }
+  .csb-stat-lbl { font-size: 10px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; }
+  .csb-badge {
+    position: absolute; bottom: 20px; right: 20px;
+    font-size: 13px; font-weight: 700; opacity: 0.7;
+  }
+
+  /* COURSE HERO (setup screen) */
+  .course-hero {
+    background: linear-gradient(135deg, var(--green-mid) 0%, var(--green-deep) 100%);
+    border-radius: var(--radius); padding: 20px;
+    color: var(--white); position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .course-hero::before {
+    content: '⛳'; position: absolute; right: -8px; top: -8px;
+    font-size: 72px; opacity: 0.1;
+  }
+  .ch-name { font-size: 18px; font-weight: 900; letter-spacing: -0.3px; }
+  .ch-loc { font-size: 11px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+  .ch-par { font-size: 28px; font-weight: 900; color: var(--fairway); }
+  .ch-par-lbl { font-size: 10px; opacity: 0.55; text-transform: uppercase; letter-spacing: 1px; text-align: right; }
+
+  /* SCORECARD TABLE */
+  .sc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .sc-table th {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--text-light);
+    padding: 4px 4px; text-align: center; border-bottom: 1px solid #e0ede6;
+  }
+  .sc-table td {
+    padding: 8px 4px; text-align: center;
+    font-size: 13px; font-weight: 600; color: var(--text-dark);
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .sc-table td.p3 { color: #4361ee; }
+  .sc-table td.p5 { color: var(--gold-dark); }
+  .sc-table td.sub { background: var(--off-white); font-weight: 800; }
+
+  /* FORM */
+  .form-row { margin-bottom: 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
+  input[type="date"], input[type="text"], input[type="email"] {
+    width: 100%; padding: 12px 14px;
+    border: 2px solid #e0ede6; border-radius: 10px;
+    font-size: 16px; color: var(--text-dark); background: var(--white);
+    outline: none; -webkit-appearance: none; appearance: none;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: var(--green-light); }
+
+  /* BUTTONS */
+  .btn-primary {
+    width: 100%; padding: 16px;
+    background: var(--green-mid); color: white;
+    border: none; border-radius: 12px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-primary:active { transform: scale(0.98); background: var(--green-deep); }
+  .btn-secondary {
+    width: 100%; padding: 14px;
+    background: transparent; color: var(--text-mid);
+    border: 2px solid #e0ede6; border-radius: 12px;
+    font-size: 15px; font-weight: 600; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-ghost {
+    background: none; border: none; color: var(--text-light);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    padding: 8px 0; text-decoration: underline;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-email {
+    width: 100%; padding: 16px;
+    background: var(--gold-dark); color: white;
+    border: none; border-radius: 12px;
+    font-size: 17px; font-weight: 700; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-email:active { transform: scale(0.98); }
+
+  .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn-option {
+    padding: 12px 8px; border-radius: 10px;
+    border: 2px solid #e0ede6; background: var(--white);
+    font-size: 13px; font-weight: 600; color: var(--text-mid);
+    cursor: pointer; transition: all 0.15s; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-option .icon { font-size: 20px; }
+  .btn-option:active { transform: scale(0.96); }
+  .btn-option.selected { background: var(--green-deep); border-color: var(--green-deep); color: var(--white); }
+  .btn-option.selected-good { background: var(--fairway); border-color: var(--fairway); color: var(--white); }
+  .btn-option.selected-bad { background: var(--gold-dark); border-color: var(--gold-dark); color: var(--white); }
+  .btn-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+
+  /* COUNTERS */
+  .counter-row { display: flex; align-items: center; gap: 16px; justify-content: center; padding: 8px 0; }
+  .counter-btn {
+    width: 52px; height: 52px; border-radius: 50%; border: none;
+    font-size: 26px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent; transition: transform 0.1s;
+  }
+  .counter-btn:active { transform: scale(0.9); }
+  .counter-minus { background: var(--off-white); color: var(--text-mid); }
+  .counter-plus { background: var(--green-mid); color: white; }
+  .counter-val { font-size: 52px; font-weight: 800; color: var(--green-deep); width: 64px; text-align: center; line-height: 1; }
+  .counter-lbl { font-size: 12px; color: var(--text-light); text-align: center; margin-top: 2px; }
+
+  /* DIVIDER */
+  .divider { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+  .divider hr { flex: 1; border: none; border-top: 1px solid #e0ede6; }
+  .divider span { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-light); font-weight: 600; }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+  .toggle-label { font-size: 15px; font-weight: 600; color: var(--text-dark); }
+  .toggle { position: relative; width: 52px; height: 30px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; inset: 0; background: #ddd; border-radius: 30px; cursor: pointer; transition: 0.3s; }
+  .slider:before { content: ''; position: absolute; width: 24px; height: 24px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.2); }
+  input:checked + .slider { background: var(--green-light); }
+  input:checked + .slider:before { transform: translateX(22px); }
+
+  /* STRIP */
+  .strip { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 4px 0; }
+  .strip::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .chip-num { font-size: 10px; font-weight: 700; color: var(--text-light); width: 32px; text-align: center; }
+  .chip-par { font-size: 10px; color: var(--text-light); text-align: center; }
+  .chip-score {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; cursor: pointer;
+    background: var(--green-pale); color: var(--green-mid); transition: transform 0.1s;
+  }
+  .chip-score.active  { background: var(--green-mid); color: white; transform: scale(1.1); }
+  .chip-score.eagle   { background: #ffd166; color: #7b4f00; }
+  .chip-score.birdie  { background: #06d6a0; color: #003d2e; }
+  .chip-score.par     { background: var(--green-pale); color: var(--green-mid); }
+  .chip-score.bogey   { background: #ffecd2; color: #c77b3a; }
+  .chip-score.double  { background: #ffd3d3; color: var(--red); }
+  .chip-score.worse   { background: var(--red); color: white; }
+
+  /* STATS */
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .stat-box { background: var(--off-white); border-radius: 10px; padding: 12px 8px; text-align: center; }
+  .stat-val { font-size: 22px; font-weight: 800; color: var(--green-deep); }
+  .stat-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-light); font-weight: 600; margin-top: 2px; }
+
+  /* FINISH */
+  .finish-hero {
+    background: linear-gradient(135deg, var(--green-mid), var(--green-deep));
+    border-radius: var(--radius); padding: 28px 20px; text-align: center; color: white;
+  }
+  .finish-score { font-size: 72px; font-weight: 900; line-height: 1; }
+  .finish-rel { font-size: 20px; font-weight: 700; opacity: 0.8; margin-top: 4px; }
+  .finish-course { font-size: 12px; opacity: 0.5; margin-top: 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* HOLE HEADER */
+  .hole-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .hole-block .lbl { font-size: 11px; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .hole-block .val { font-size: 30px; font-weight: 900; color: var(--green-deep); }
+  .par-block { text-align: right; }
+  .par-block .lbl { font-size: 11px; color: var(--text-light); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+  .par-block .val { font-size: 30px; font-weight: 900; color: var(--fairway); }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green-deep); color: white;
+    padding: 12px 20px; border-radius: 30px;
+    font-size: 14px; font-weight: 600; z-index: 300;
+    transition: transform 0.3s ease; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-logo">⛳ Golf<span>Stats</span></div>
+    <div class="header-sub" id="header-sub">Fancourt</div>
+  </div>
+  <div class="hole-pill" id="hole-pill">Hole 1</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<div class="main">
+
+<!-- ===== SCREEN: COURSE SELECT ===== -->
+<div class="screen active" id="screen-courses">
+
+  <div style="padding: 4px 0 8px">
+    <div style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:12px">Select Course</div>
+  </div>
+
+  <button class="course-select-btn" onclick="selectCourse('montagu')">
+    <div class="csb-label">Fancourt</div>
+    <div class="csb-name">Montagu</div>
+    <div class="csb-location">George, South Africa</div>
+    <div class="csb-pars">
+      <div><div class="csb-stat-val">72</div><div class="csb-stat-lbl">Par</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 3s</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 5s</div></div>
+    </div>
+    <div class="csb-badge">→</div>
+  </button>
+
+  <button class="course-select-btn" onclick="selectCourse('outeniqua')" style="background: linear-gradient(135deg, #1d5c42, #0f2a1e);">
+    <div class="csb-label">Fancourt</div>
+    <div class="csb-name">Outeniqua</div>
+    <div class="csb-location">George, South Africa</div>
+    <div class="csb-pars">
+      <div><div class="csb-stat-val">72</div><div class="csb-stat-lbl">Par</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 3s</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 5s</div></div>
+    </div>
+    <div class="csb-badge">→</div>
+  </button>
+
+</div>
+
+<!-- ===== SCREEN: SETUP ===== -->
+<div class="screen" id="screen-setup">
+
+  <div class="course-hero">
+    <div>
+      <div class="ch-name" id="setup-course-name">Montagu</div>
+      <div class="ch-loc">George, South Africa</div>
+    </div>
+    <div style="text-align:right">
+      <div class="ch-par">72</div>
+      <div class="ch-par-lbl">Par</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Scorecard</div>
+    <div class="card-sub" id="setup-scorecard-sub">Par 72 · Holes 1–18</div>
+    <table class="sc-table" id="sc-front">
+      <thead><tr>
+        <th>Hole</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th><th>Out</th>
+      </tr></thead>
+      <tbody><tr id="sc-front-row">
+        <td style="font-weight:700;color:var(--text-mid);font-size:11px">Par</td>
+      </tr></tbody>
+    </table>
+    <table class="sc-table" style="margin-top:8px" id="sc-back">
+      <thead><tr>
+        <th>Hole</th><th>10</th><th>11</th><th>12</th><th>13</th><th>14</th><th>15</th><th>16</th><th>17</th><th>18</th><th>In</th>
+      </tr></thead>
+      <tbody><tr id="sc-back-row">
+        <td style="font-weight:700;color:var(--text-mid);font-size:11px">Par</td>
+      </tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Your Details</div>
+    <div class="form-row">
+      <label>Your Name</label>
+      <input type="text" id="player-name" placeholder="e.g. John">
+    </div>
+    <div class="form-row">
+      <label>Your Email</label>
+      <input type="email" id="player-email" placeholder="your@email.com">
+    </div>
+    <div class="form-row">
+      <label>Date</label>
+      <input type="date" id="round-date">
+    </div>
+    <div class="form-row">
+      <label>Starting Hole</label>
+      <div class="btn-grid-2">
+        <button class="btn-option selected" id="start-1" onclick="setStart(1)">
+          <span class="icon">🏁</span>Hole 1
+        </button>
+        <button class="btn-option" id="start-10" onclick="setStart(10)">
+          <span class="icon">🔄</span>Hole 10
+        </button>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="beginRound()">Start Round →</button>
+    <div style="text-align:center;margin-top:12px">
+      <button class="btn-ghost" onclick="showScreen('screen-courses')">← Change course</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== SCREEN: HOLE ===== -->
+<div class="screen" id="screen-hole">
+
+  <div class="card">
+    <div class="strip" id="strip"></div>
+  </div>
+
+  <div class="card">
+    <div class="hole-header">
+      <div class="hole-block">
+        <div class="lbl">Hole</div>
+        <div class="val" id="h-num">1</div>
+      </div>
+      <div class="par-block">
+        <div class="lbl">Par</div>
+        <div class="val" id="h-par">4</div>
+      </div>
+    </div>
+
+    <!-- PAR 3 -->
+    <div id="par3-section">
+      <div class="divider"><hr><span>Tee Shot</span><hr></div>
+      <div class="btn-grid-3" id="tee-grid">
+        <button class="btn-option" data-val="Hit Green" onclick="sel('tee',this)"><span class="icon">🎯</span>Hit Green</button>
+        <button class="btn-option" data-val="Missed Short" onclick="sel('tee',this)"><span class="icon">⬇️</span>Short</button>
+        <button class="btn-option" data-val="Missed Long" onclick="sel('tee',this)"><span class="icon">⬆️</span>Long</button>
+        <button class="btn-option" data-val="Missed Left" onclick="sel('tee',this)"><span class="icon">⬅️</span>Left</button>
+        <button class="btn-option" data-val="Missed Right" onclick="sel('tee',this)"><span class="icon">➡️</span>Right</button>
+      </div>
+    </div>
+
+    <!-- PAR 4/5 -->
+    <div id="par45-section">
+      <div class="divider"><hr><span>Drive</span><hr></div>
+      <div class="btn-grid-3" id="drive-grid">
+        <button class="btn-option" data-val="Fairway" onclick="sel('drive',this)"><span class="icon">✅</span>Fairway</button>
+        <button class="btn-option" data-val="Missed Left" onclick="sel('drive',this)"><span class="icon">⬅️</span>Missed Left</button>
+        <button class="btn-option" data-val="Missed Right" onclick="sel('drive',this)"><span class="icon">➡️</span>Missed Right</button>
+      </div>
+      <div class="divider"><hr><span>Approach</span><hr></div>
+      <div class="btn-grid-3" id="approach-grid">
+        <button class="btn-option" data-val="Hit Green" onclick="sel('approach',this)"><span class="icon">🎯</span>Hit Green</button>
+        <button class="btn-option" data-val="Missed Short" onclick="sel('approach',this)"><span class="icon">⬇️</span>Short</button>
+        <button class="btn-option" data-val="Missed Long" onclick="sel('approach',this)"><span class="icon">⬆️</span>Long</button>
+        <button class="btn-option" data-val="Missed Left" onclick="sel('approach',this)"><span class="icon">⬅️</span>Left</button>
+        <button class="btn-option" data-val="Missed Right" onclick="sel('approach',this)"><span class="icon">➡️</span>Right</button>
+      </div>
+    </div>
+
+    <div class="divider"><hr><span>Score</span><hr></div>
+    <div class="counter-row">
+      <button class="counter-btn counter-minus" onclick="adj('score',-1)">−</button>
+      <div>
+        <div class="counter-val" id="score-val">4</div>
+        <div class="counter-lbl" id="score-lbl">Par</div>
+      </div>
+      <button class="counter-btn counter-plus" onclick="adj('score',1)">+</button>
+    </div>
+
+    <div class="divider"><hr><span>Putts</span><hr></div>
+    <div class="counter-row">
+      <button class="counter-btn counter-minus" onclick="adj('putts',-1)">−</button>
+      <div>
+        <div class="counter-val" id="putts-val">2</div>
+        <div class="counter-lbl">putts</div>
+      </div>
+      <button class="counter-btn counter-plus" onclick="adj('putts',1)">+</button>
+    </div>
+
+    <div class="divider" id="ud-divider" style="display:none"><hr><span>Up &amp; Down</span><hr></div>
+    <div class="toggle-row" id="ud-row" style="display:none">
+      <span class="toggle-label">Got up &amp; down?</span>
+      <label class="toggle">
+        <input type="checkbox" id="ud-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn-secondary" style="width:auto;padding:14px 18px" onclick="prevHole()">←</button>
+      <button class="btn-primary" onclick="saveHole()">Save &amp; Next →</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Round So Far</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val" id="rs-score">0</div><div class="stat-lbl">Score</div></div>
+      <div class="stat-box"><div class="stat-val" id="rs-vspar">E</div><div class="stat-lbl">vs Par</div></div>
+      <div class="stat-box"><div class="stat-val" id="rs-putts">0</div><div class="stat-lbl">Putts</div></div>
+      <div class="stat-box"><div class="stat-val" id="rs-fir">–</div><div class="stat-lbl">FIR</div></div>
+      <div class="stat-box"><div class="stat-val" id="rs-gir">–</div><div class="stat-lbl">GIR</div></div>
+      <div class="stat-box"><div class="stat-val" id="rs-ud">–</div><div class="stat-lbl">Up&Down</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== SCREEN: FINISH ===== -->
+<div class="screen" id="screen-finish">
+
+  <div class="finish-hero">
+    <div style="font-size:12px;opacity:0.6;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Round Complete 🏆</div>
+    <div class="finish-score" id="fin-score">72</div>
+    <div class="finish-rel" id="fin-rel">Even Par</div>
+    <div class="finish-course" id="fin-course-name">Fancourt Montagu</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Round Stats</div>
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-val" id="fin-putts">–</div><div class="stat-lbl">Putts</div></div>
+      <div class="stat-box"><div class="stat-val" id="fin-fir">–</div><div class="stat-lbl">FIR</div></div>
+      <div class="stat-box"><div class="stat-val" id="fin-gir">–</div><div class="stat-lbl">GIR</div></div>
+      <div class="stat-box"><div class="stat-val" id="fin-ud">–</div><div class="stat-lbl">Up&Down</div></div>
+      <div class="stat-box"><div class="stat-val" id="fin-birdies">–</div><div class="stat-lbl">Birdies</div></div>
+      <div class="stat-box"><div class="stat-val" id="fin-bogeys">–</div><div class="stat-lbl">Bogeys+</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:12px">Scorecard</div>
+    <div class="strip" id="fin-strip"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📧 Email Stats to Yourself</div>
+    <div class="card-sub">Opens your mail app with the full summary pre-filled.</div>
+    <div class="form-row" style="margin-bottom:16px">
+      <label>Your Email</label>
+      <input type="email" id="fin-email" placeholder="your@email.com">
+    </div>
+    <button class="btn-email" onclick="sendEmail()">✉️ &nbsp;Open in Mail App</button>
+    <div style="margin-top:10px">
+      <button class="btn-secondary" onclick="newRound()">Play Again</button>
+    </div>
+    <div style="text-align:center;margin-top:10px">
+      <button class="btn-ghost" onclick="showScreen('screen-courses')">← Choose different course</button>
+    </div>
+  </div>
+
+</div>
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// COURSES
+// ============================================================
+const COURSES = {
+  montagu: {
+    name: 'Fancourt Montagu',
+    short: 'Montagu',
+    location: 'George, South Africa',
+    pars: [4,3,4,5,4,4,4,3,5, 5,4,3,4,4,4,4,3,5]
+  },
+  outeniqua: {
+    name: 'Fancourt Outeniqua',
+    short: 'Outeniqua',
+    location: 'George, South Africa',
+    pars: [4,5,4,3,4,4,3,5,4, 4,5,3,4,4,3,4,5,4]
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let G = {
+  course: null,   // COURSES object
+  name: '',
+  email: '',
+  date: '',
+  startHole: 1,
+  order: [],
+  idx: 0,
+  stats: {},
+  score: 4,
+  putts: 2,
+  tee: null,
+  drive: null,
+  approach: null,
+};
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = () => {
+  document.getElementById('round-date').value = new Date().toISOString().split('T')[0];
+};
+
+// ============================================================
+// COURSE SELECTION
+// ============================================================
+function selectCourse(key) {
+  G.course = COURSES[key];
+
+  // Update setup screen header
+  document.getElementById('setup-course-name').textContent = G.course.short;
+  document.getElementById('header-sub').textContent = G.course.name;
+
+  // Build scorecard rows
+  const pars = G.course.pars;
+  const frontRow = document.getElementById('sc-front-row');
+  const backRow  = document.getElementById('sc-back-row');
+
+  // Clear old par cells (keep first td label)
+  while (frontRow.children.length > 1) frontRow.removeChild(frontRow.lastChild);
+  while (backRow.children.length > 1)  backRow.removeChild(backRow.lastChild);
+
+  let frontSum = 0, backSum = 0;
+  for (let i = 0; i < 9; i++) {
+    const p = pars[i]; frontSum += p;
+    const td = document.createElement('td');
+    td.textContent = p;
+    if (p === 3) td.className = 'p3';
+    if (p === 5) td.className = 'p5';
+    frontRow.appendChild(td);
+  }
+  const frontSub = document.createElement('td');
+  frontSub.className = 'sub'; frontSub.textContent = frontSum;
+  frontRow.appendChild(frontSub);
+
+  for (let i = 9; i < 18; i++) {
+    const p = pars[i]; backSum += p;
+    const td = document.createElement('td');
+    td.textContent = p;
+    if (p === 3) td.className = 'p3';
+    if (p === 5) td.className = 'p5';
+    backRow.appendChild(td);
+  }
+  const backSub = document.createElement('td');
+  backSub.className = 'sub'; backSub.textContent = backSum;
+  backRow.appendChild(backSub);
+
+  showScreen('screen-setup');
+}
+
+// ============================================================
+// SETUP
+// ============================================================
+function setStart(h) {
+  G.startHole = h;
+  document.getElementById('start-1').className  = 'btn-option' + (h === 1  ? ' selected' : '');
+  document.getElementById('start-10').className = 'btn-option' + (h === 10 ? ' selected' : '');
+}
+
+function beginRound() {
+  const name  = document.getElementById('player-name').value.trim();
+  const email = document.getElementById('player-email').value.trim();
+  const date  = document.getElementById('round-date').value;
+  if (!name) { showToast('Please enter your name'); return; }
+  if (!date) { showToast('Please select a date'); return; }
+
+  G.name  = name;
+  G.email = email;
+  G.date  = date;
+  G.stats = {};
+  G.idx   = 0;
+
+  const order = [];
+  for (let h = G.startHole; h <= 18; h++) order.push(h);
+  for (let h = 1; h < G.startHole; h++) order.push(h);
+  G.order = order;
+
+  document.getElementById('hole-pill').style.display = 'block';
+  showScreen('screen-hole');
+  renderHole();
+}
+
+// ============================================================
+// HOLE SCREEN
+// ============================================================
+function renderHole() {
+  const hNum = G.order[G.idx];
+  const par  = G.course.pars[hNum - 1];
+
+  document.getElementById('h-num').textContent = hNum;
+  document.getElementById('h-par').textContent = par;
+  document.getElementById('hole-pill').textContent = `Hole ${hNum}`;
+
+  document.getElementById('par3-section').style.display  = par === 3 ? 'block' : 'none';
+  document.getElementById('par45-section').style.display = par >  3  ? 'block' : 'none';
+
+  const saved    = G.stats[hNum];
+  G.score    = saved?.score    ?? par;
+  G.putts    = saved?.putts    ?? 2;
+  G.tee      = saved?.tee      ?? null;
+  G.drive    = saved?.drive    ?? null;
+  G.approach = saved?.approach ?? null;
+
+  document.getElementById('score-val').textContent = G.score;
+  document.getElementById('putts-val').textContent = G.putts;
+  document.getElementById('ud-toggle').checked = saved?.upDown ?? false;
+  updateScoreLbl(G.score, par);
+  restoreGrid('tee-grid',      G.tee);
+  restoreGrid('drive-grid',    G.drive);
+  restoreGrid('approach-grid', G.approach);
+  updateUpDown();
+  renderStrip();
+  updateStats();
+}
+
+function restoreGrid(id, val) {
+  const g = document.getElementById(id);
+  if (!g) return;
+  g.querySelectorAll('.btn-option').forEach(b => {
+    const good = b.dataset.val === 'Hit Green' || b.dataset.val === 'Fairway';
+    b.className = 'btn-option' + (b.dataset.val === val ? (good ? ' selected-good' : ' selected-bad') : '');
+  });
+}
+
+function sel(type, btn) {
+  const map = { tee: 'tee-grid', drive: 'drive-grid', approach: 'approach-grid' };
+  document.getElementById(map[type]).querySelectorAll('.btn-option').forEach(b => b.className = 'btn-option');
+  const good = btn.dataset.val === 'Hit Green' || btn.dataset.val === 'Fairway';
+  btn.className = 'btn-option ' + (good ? 'selected-good' : 'selected-bad');
+  G[type] = btn.dataset.val;
+  updateUpDown();
+}
+
+function adj(field, d) {
+  const hNum = G.order[G.idx];
+  const par  = G.course.pars[hNum - 1];
+  if (field === 'score') {
+    G.score = Math.max(1, G.score + d);
+    document.getElementById('score-val').textContent = G.score;
+    updateScoreLbl(G.score, par);
+  } else {
+    G.putts = Math.max(0, G.putts + d);
+    document.getElementById('putts-val').textContent = G.putts;
+  }
+}
+
+function updateScoreLbl(score, par) {
+  const diff = score - par;
+  const map  = {'-3':'Albatross','-2':'Eagle','-1':'Birdie','0':'Par','1':'Bogey','2':'Double','3':'Triple'};
+  document.getElementById('score-lbl').textContent = map[String(diff)] ?? (diff > 0 ? `+${diff}` : String(diff));
+}
+
+function updateUpDown() {
+  const hNum   = G.order[G.idx];
+  const par    = G.course.pars[hNum - 1];
+  const missed = par === 3 ? (G.tee && G.tee !== 'Hit Green') : (G.approach && G.approach !== 'Hit Green');
+  document.getElementById('ud-divider').style.display = missed ? 'flex' : 'none';
+  document.getElementById('ud-row').style.display     = missed ? 'flex' : 'none';
+}
+
+function prevHole() {
+  if (G.idx > 0) { G.idx--; renderHole(); }
+}
+
+function saveHole() {
+  const hNum   = G.order[G.idx];
+  const par    = G.course.pars[hNum - 1];
+  const upDown = document.getElementById('ud-toggle').checked;
+  const gir    = par === 3 ? G.tee === 'Hit Green' : G.approach === 'Hit Green';
+
+  G.stats[hNum] = { score: G.score, putts: G.putts, tee: G.tee, drive: G.drive, approach: G.approach, upDown, gir, par };
+
+  if (G.idx === 17) { finishRound(); return; }
+
+  G.idx++;
+  const nextH = G.order[G.idx];
+  G.score    = G.course.pars[nextH - 1];
+  G.putts    = 2;
+  G.tee      = null;
+  G.drive    = null;
+  G.approach = null;
+  renderHole();
+}
+
+function jumpTo(i) { G.idx = i; renderHole(); }
+
+// ============================================================
+// RUNNING STATS
+// ============================================================
+function calcTotals() {
+  let score=0, par=0, putts=0, fir=0, firD=0, gir=0, ud=0, udD=0, birdies=0, bogeys=0;
+  Object.values(G.stats).forEach(h => {
+    score += h.score; par += h.par; putts += h.putts;
+    if (h.par > 3) { firD++; if (h.drive === 'Fairway') fir++; }
+    if (h.gir) gir++;
+    if (!h.gir) { udD++; if (h.upDown) ud++; }
+    if (h.score < h.par) birdies++;
+    if (h.score > h.par) bogeys++;
+  });
+  return { score, par, putts, fir, firD, gir, ud, udD, birdies, bogeys };
+}
+
+function updateStats() {
+  const t  = calcTotals();
+  const n  = Object.keys(G.stats).length;
+  const vp = t.score - t.par;
+  document.getElementById('rs-score').textContent = t.score || 0;
+  document.getElementById('rs-vspar').textContent = vp === 0 ? 'E' : (vp > 0 ? `+${vp}` : `${vp}`);
+  document.getElementById('rs-putts').textContent = t.putts;
+  document.getElementById('rs-fir').textContent   = t.firD ? `${t.fir}/${t.firD}` : '–';
+  document.getElementById('rs-gir').textContent   = n ? `${t.gir}/${n}` : '–';
+  document.getElementById('rs-ud').textContent    = t.udD ? `${t.ud}/${t.udD}` : '–';
+}
+
+function renderStrip() {
+  const strip = document.getElementById('strip');
+  strip.innerHTML = '';
+  G.order.forEach((h, i) => {
+    const par   = G.course.pars[h - 1];
+    const score = G.stats[h]?.score;
+    const diff  = score != null ? score - par : null;
+    let cls = '';
+    if (diff != null) {
+      if (diff <= -2) cls = 'eagle'; else if (diff === -1) cls = 'birdie';
+      else if (diff === 0) cls = 'par'; else if (diff === 1) cls = 'bogey';
+      else if (diff === 2) cls = 'double'; else cls = 'worse';
+    }
+    strip.innerHTML += `<div class="chip">
+      <div class="chip-num">H${h}</div>
+      <div class="chip-score ${cls}${i === G.idx ? ' active' : ''}" onclick="jumpTo(${i})">${score ?? '·'}</div>
+      <div class="chip-par">p${par}</div>
+    </div>`;
+  });
+  strip.querySelectorAll('.chip-score')[G.idx]?.scrollIntoView({ block:'nearest', inline:'center', behavior:'smooth' });
+}
+
+// ============================================================
+// FINISH
+// ============================================================
+function finishRound() {
+  const t  = calcTotals();
+  const vp = t.score - t.par;
+  const rel = vp === 0 ? 'Even Par' : (vp > 0 ? `+${vp}` : `${vp}`);
+
+  document.getElementById('fin-score').textContent   = t.score;
+  document.getElementById('fin-rel').textContent     = rel;
+  document.getElementById('fin-course-name').textContent = `${G.course.name} · ${G.name}`;
+  document.getElementById('fin-putts').textContent   = t.putts;
+  document.getElementById('fin-fir').textContent     = t.firD ? `${t.fir}/${t.firD}` : '–';
+  document.getElementById('fin-gir').textContent     = `${t.gir}/18`;
+  document.getElementById('fin-ud').textContent      = t.udD ? `${t.ud}/${t.udD}` : '–';
+  document.getElementById('fin-birdies').textContent = t.birdies;
+  document.getElementById('fin-bogeys').textContent  = t.bogeys;
+
+  const strip = document.getElementById('fin-strip');
+  strip.innerHTML = '';
+  G.order.forEach(h => {
+    const par   = G.course.pars[h - 1];
+    const score = G.stats[h]?.score;
+    const diff  = score != null ? score - par : null;
+    let cls = '';
+    if (diff != null) {
+      if (diff <= -2) cls = 'eagle'; else if (diff === -1) cls = 'birdie';
+      else if (diff === 0) cls = 'par'; else if (diff === 1) cls = 'bogey';
+      else if (diff === 2) cls = 'double'; else cls = 'worse';
+    }
+    strip.innerHTML += `<div class="chip"><div class="chip-num">H${h}</div><div class="chip-score ${cls}">${score ?? '·'}</div><div class="chip-par">p${par}</div></div>`;
+  });
+
+  if (G.email) document.getElementById('fin-email').value = G.email;
+  document.getElementById('hole-pill').style.display = 'none';
+  showScreen('screen-finish');
+}
+
+// ============================================================
+// EMAIL
+// ============================================================
+function sendEmail() {
+  const emailAddr = document.getElementById('fin-email').value.trim();
+  if (!emailAddr) { showToast('Enter your email address first'); return; }
+
+  const t   = calcTotals();
+  const vp  = t.score - t.par;
+  const rel = vp === 0 ? 'Even Par' : (vp > 0 ? `+${vp}` : `${vp}`);
+
+  const subject = `${G.course.name} — ${G.name} — ${formatDate(G.date)} — ${t.score} (${rel})`;
+
+  const frontPar   = G.course.pars.slice(0,9).reduce((a,b)=>a+b,0);
+  const backPar    = G.course.pars.slice(9).reduce((a,b)=>a+b,0);
+  const frontScore = G.order.filter(h=>h<=9).reduce((a,h)=>a+(G.stats[h]?.score||0),0);
+  const backScore  = G.order.filter(h=>h>9).reduce((a,h)=>a+(G.stats[h]?.score||0),0);
+  const frontVP    = frontScore - frontPar;
+  const backVP     = backScore  - backPar;
+
+  const holeLines = G.order.map(h => {
+    const s   = G.stats[h];
+    const par = G.course.pars[h - 1];
+    if (!s) return `  H${String(h).padStart(2,'0')}  Par ${par}  —  No data`;
+    const diff = s.score - par;
+    const tag  = {'-3':'Albatross','-2':'Eagle','-1':'Birdie','0':'Par','1':'Bogey','2':'Double','3':'Triple'}[String(diff)] ?? (diff > 0 ? `+${diff}` : String(diff));
+    let shot = '';
+    if (par === 3) {
+      shot = s.tee ? `Tee: ${s.tee}` : '';
+    } else {
+      const pts = [];
+      if (s.drive)    pts.push(`Drive: ${s.drive}`);
+      if (s.approach) pts.push(`Approach: ${s.approach}`);
+      shot = pts.join(' · ');
+    }
+    const ud = !s.gir ? (s.upDown ? ' · Up & Down ✓' : ' · Missed U&D') : '';
+    return `  H${String(h).padStart(2,'0')}  Par ${par}  Score ${s.score} (${tag})  ${s.putts} putts  ${shot}${ud}`;
+  }).join('\n');
+
+  const body = [
+    `${G.course.name.toUpperCase()} — ROUND SUMMARY`,
+    `==========================================`,
+    `Player  : ${G.name}`,
+    `Date    : ${formatDate(G.date)}`,
+    `Course  : ${G.course.name}, ${G.course.location}`,
+    ``,
+    `SCORE`,
+    `------------------------------------------`,
+    `Total Score : ${t.score}  (${rel})`,
+    `Front 9     : ${frontScore}  (${frontVP >= 0 ? '+' : ''}${frontVP})`,
+    `Back 9      : ${backScore}  (${backVP >= 0 ? '+' : ''}${backVP})`,
+    ``,
+    `STATS`,
+    `------------------------------------------`,
+    `Total Putts          : ${t.putts}`,
+    `Fairways Hit (FIR)   : ${t.firD ? `${t.fir} of ${t.firD}` : 'N/A'}`,
+    `Greens in Reg (GIR)  : ${t.gir} of 18`,
+    `Up & Downs           : ${t.udD ? `${t.ud} of ${t.udD}` : 'N/A'}`,
+    `Birdies              : ${t.birdies}`,
+    `Bogeys+              : ${t.bogeys}`,
+    ``,
+    `HOLE BY HOLE`,
+    `------------------------------------------`,
+    holeLines,
+    ``,
+    `------------------------------------------`,
+    `Tracked with GolfStats · Fancourt`,
+  ].join('\n');
+
+  window.location.href = `mailto:${encodeURIComponent(emailAddr)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function newRound() {
+  G = { course: G.course, name:'', email:'', date:'', startHole:1, order:[], idx:0, stats:{}, score:4, putts:2, tee:null, drive:null, approach:null };
+  setStart(1);
+  document.getElementById('round-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('player-name').value  = '';
+  document.getElementById('player-email').value = '';
+  showScreen('screen-setup');
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
