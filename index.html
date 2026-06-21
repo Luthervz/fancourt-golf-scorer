@@ -346,7 +346,7 @@
   <div class="course-hero">
     <div>
       <div class="ch-name" id="setup-course-name">Montagu</div>
-      <div class="ch-loc">George, South Africa</div>
+      <div class="ch-loc" id="setup-course-loc">George, South Africa</div>
     </div>
     <div style="text-align:right">
       <div class="ch-par">72</div>
@@ -617,6 +617,7 @@ function selectCourse(key) {
 
   // Update setup screen header
   document.getElementById('setup-course-name').textContent = G.course.short;
+  document.getElementById('setup-course-loc').textContent = G.course.location;
   document.getElementById('header-sub').textContent = G.course.name;
 
   // Build scorecard rows
