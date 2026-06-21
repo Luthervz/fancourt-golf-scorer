@@ -314,6 +314,30 @@
     <div class="csb-badge">→</div>
   </button>
 
+  <button class="course-select-btn" onclick="selectCourse('rocklands')" style="background: linear-gradient(135deg, #1b6b5a, #0c2e28);">
+    <div class="csb-label">CCJ</div>
+    <div class="csb-name">Rocklands</div>
+    <div class="csb-location">Johannesburg, South Africa</div>
+    <div class="csb-pars">
+      <div><div class="csb-stat-val">72</div><div class="csb-stat-lbl">Par</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 3s</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 5s</div></div>
+    </div>
+    <div class="csb-badge">→</div>
+  </button>
+
+  <button class="course-select-btn" onclick="selectCourse('woodmead')" style="background: linear-gradient(135deg, #3a6b2d, #14260f);">
+    <div class="csb-label">CCJ</div>
+    <div class="csb-name">Woodmead</div>
+    <div class="csb-location">Johannesburg, South Africa</div>
+    <div class="csb-pars">
+      <div><div class="csb-stat-val">72</div><div class="csb-stat-lbl">Par</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 3s</div></div>
+      <div><div class="csb-stat-val">4×</div><div class="csb-stat-lbl">Par 5s</div></div>
+    </div>
+    <div class="csb-badge">→</div>
+  </button>
+
 </div>
 
 <!-- ===== SCREEN: SETUP ===== -->
@@ -544,6 +568,18 @@ const COURSES = {
     short: 'Outeniqua',
     location: 'George, South Africa',
     pars: [4,5,4,3,4,4,3,5,4, 4,5,3,4,4,3,4,5,4]
+  },
+  rocklands: {
+    name: 'CCJ Rocklands',
+    short: 'Rocklands',
+    location: 'Johannesburg, South Africa',
+    pars: [4,4,5,3,4,3,5,4,4, 4,4,5,5,4,3,4,3,4]
+  },
+  woodmead: {
+    name: 'CCJ Woodmead',
+    short: 'Woodmead',
+    location: 'Johannesburg, South Africa',
+    pars: [4,4,5,3,4,5,4,3,4, 4,4,4,3,4,3,5,4,5]
   }
 };
 
@@ -902,51 +938,4 @@ function sendEmail() {
     `Fairways Hit (FIR)   : ${t.firD ? `${t.fir} of ${t.firD}` : 'N/A'}`,
     `Greens in Reg (GIR)  : ${t.gir} of 18`,
     `Up & Downs           : ${t.udD ? `${t.ud} of ${t.udD}` : 'N/A'}`,
-    `Birdies              : ${t.birdies}`,
-    `Bogeys+              : ${t.bogeys}`,
-    ``,
-    `HOLE BY HOLE`,
-    `------------------------------------------`,
-    holeLines,
-    ``,
-    `------------------------------------------`,
-    `Tracked with GolfStats · Fancourt`,
-  ].join('\n');
-
-  window.location.href = `mailto:${encodeURIComponent(emailAddr)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
-// ============================================================
-// UTILS
-// ============================================================
-function newRound() {
-  G = { course: G.course, name:'', email:'', date:'', startHole:1, order:[], idx:0, stats:{}, score:4, putts:2, tee:null, drive:null, approach:null };
-  setStart(1);
-  document.getElementById('round-date').value = new Date().toISOString().split('T')[0];
-  document.getElementById('player-name').value  = '';
-  document.getElementById('player-email').value = '';
-  showScreen('screen-setup');
-}
-
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  window.scrollTo(0, 0);
-}
-
-function formatDate(d) {
-  if (!d) return '';
-  const [y,m,day] = d.split('-');
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-</script>
-</body>
-</html>
+    `Birdies              : $
